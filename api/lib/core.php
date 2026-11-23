@@ -123,11 +123,19 @@ function clean_phone(?string $p): ?string {
 
 /* ---------------- Sessions, login, roles ---------------- */
 
+/** Web path of the CRM folder: "/" on its own domain, "/crm-demo/" when it runs inside another site */
+function app_path(): string {
+    $dir = rtrim(str_replace('\\', '/', dirname((string)($_SERVER['SCRIPT_NAME'] ?? '/'))), '/');
+    if (str_ends_with($dir, '/api')) $dir = substr($dir, 0, -4);
+    return $dir . '/';
+}
+
 function start_session(): void {
     if (session_status() === PHP_SESSION_ACTIVE) return;
     $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https';
     session_name('crmsid');
-    session_set_cookie_params(['httponly' => true, 'samesite' => 'Lax', 'secure' => $https, 'path' => '/']);
+    // Login cookie only for the folder the CRM lives in (e.g. /crm-demo/), so it can share a domain with another website
+    session_set_cookie_params(['httponly' => true, 'samesite' => 'Lax', 'secure' => $https, 'path' => app_path()]);
     session_start();
     if (empty($_SESSION['csrf'])) $_SESSION['csrf'] = bin2hex(random_bytes(16));
 }

@@ -44,6 +44,21 @@ PHP 8 + MySQL, no build step. Runs on Hostinger shared hosting (or any PHP host)
 
 Uploaded photos are saved in `uploads/` (PHP cannot run there). `config.php` and `uploads/` are never stored in Git.
 
+### Demo inside another website (e.g. `sitepitch.in/crm-demo`)
+The CRM works from any folder — all links are relative and the login cookie is limited to its folder, so it never clashes with the main site.
+1. **hPanel → Databases → MySQL**: create a *separate* database for the CRM (e.g. `u…_crmdemo`), so it can be moved later on its own.
+2. **hPanel → Git** on the main website → *Add repository*: `srisomesh-ai/cctv-crm`, branch `main`, **Directory / install path: `crm-demo`** → Create → Deploy.
+   Files land in `public_html/crm-demo/`. The main site's own Git deploy does not touch this folder.
+3. **File Manager → public_html/crm-demo/**: copy `config.sample.php` to `config.php`, fill in the CRM database, set `define('DEMO_MODE', true);`.
+4. Open `https://sitepitch.in/crm-demo/install.php` → tick **Add demo data** → Install. Demo is live at `https://sitepitch.in/crm-demo/`.
+
+### Move to the customer's own domain & hosting
+1. On the new hosting: create a MySQL database, and deploy this repository to the site root (hPanel → Git, empty directory) or upload the files.
+2. **Fresh start (usual):** copy `config.sample.php` → `config.php` with the new database, keep `DEMO_MODE` false, open `/install.php` and create the real admin login (do not tick demo data).
+   **Keep the data instead:** phpMyAdmin → *Export* the demo database → *Import* it on the new hosting, copy the `uploads/` folder, and write `config.php` (no install needed).
+3. Settings → company name, GSTIN, bank / UPI, terms. Team → add the real users.
+4. Remove the demo folder from the old site when done (hPanel → Git → delete the `crm-demo` repository and its folder).
+
 ### Demo logins (when demo data is installed)
 All demo users have the password `demo123`: `ravi@demo.crm` (admin), `priya@demo.crm` (manager), `anil@demo.crm` (sales), `suresh@demo.crm` (technician).
 With `DEMO_MODE` on, the login page shows one-tap buttons for each role.
