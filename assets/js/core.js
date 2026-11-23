@@ -6,7 +6,7 @@ export const S = { user: null, csrf: '', settings: {}, users: [], roles: {}, dem
 export async function api(action, body = null, opts = {}) {
   const isForm = body instanceof FormData;
   const get = body === null || opts.get;
-  const url = 'api/?a=' + action + (get && body ? '&' + new URLSearchParams(clean(body)) : '');
+  const url = 'api/index.php?a=' + action + (get && body ? '&' + new URLSearchParams(clean(body)) : '');
   let res;
   try {
     res = await fetch(url, get ? { credentials: 'same-origin' } : {
