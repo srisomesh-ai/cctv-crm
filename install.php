@@ -3,8 +3,24 @@
 // After setup this page only says "already installed" — it never overwrites data.
 declare(strict_types=1);
 
+// Step 1: database details → test the connection → write config.php
 if (!is_file(__DIR__ . '/config.php')) {
-    $msg = 'Copy <b>config.sample.php</b> to <b>config.php</b>, fill in your database name, user and password, then reload this page.';
+    $dbStep = true;
+    $db = ['host' => 'localhost', 'name' => '', 'user' => '', 'pass' => ''];
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['db_name'])) {
+        foreach ($db as $k => $_) $db[$k] = trim((string)($_POST['db_' . $k] ?? ''));
+        try {
+            new PDO('mysql:host=' . $db['host'] . ';dbname=' . $db['name'] . ';charset=utf8mb4', $db['user'], $db['pass'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+            $e = fn($v) => var_export($v, true);
+            $cfg = "<?php\n// Written by install.php. Never stored in Git.\n"
+                 . 'define(\'DB_HOST\', ' . $e($db['host']) . ");\ndefine('DB_NAME', " . $e($db['name']) . ");\ndefine('DB_USER', " . $e($db['user']) . ");\ndefine('DB_PASS', " . $e($db['pass']) . ");\n"
+                 . "define('DEMO_MODE', " . (!empty($_POST['demo_mode']) ? 'true' : 'false') . ");\ndefine('APP_TZ', 'Asia/Kolkata');\n";
+            if (@file_put_contents(__DIR__ . '/config.php', $cfg) === false) $err = 'Could not save config.php — check folder permissions.';
+            else { header('Location: install.php'); exit; }
+        } catch (Throwable $ex) {
+            $err = 'Could not connect to the database: ' . $ex->getMessage();
+        }
+    }
 } else {
     // Load the API code without running a request
     function route(string $a, string $m, ?array $r, callable $f): void {}
@@ -42,15 +58,26 @@ h1{font-size:22px;margin:0 0 6px}p{color:#475569}label{display:block;font-size:1
 button{margin-top:20px;width:100%;padding:13px;border:0;border-radius:10px;background:#4f46e5;color:#fff;font:600 15px system-ui;cursor:pointer}.e{background:#fee2e2;color:#991b1b;padding:10px;border-radius:10px;margin-top:12px}a{color:#4f46e5}</style></head>
 <body><div class="b"><h1>CRM setup</h1>
 <?php if (isset($msg)): ?><p><?= $msg ?></p>
+<?php elseif (!empty($dbStep)): ?>
+<p><b>Step 1 of 2</b> — your MySQL database (hPanel → Databases → MySQL Databases).</p>
+<?php if (!empty($err)) echo '<div class="e">' . htmlspecialchars($err) . '</div>'; ?>
+<form method="post">
+  <label>Database name</label><input type="text" name="db_name" value="<?= htmlspecialchars($db['name']) ?>" placeholder="u123456789_crm" required>
+  <label>Database user</label><input type="text" name="db_user" value="<?= htmlspecialchars($db['user']) ?>" placeholder="u123456789_crm" required>
+  <label>Database password</label><input type="password" name="db_pass" required>
+  <label>Database host</label><input type="text" name="db_host" value="<?= htmlspecialchars($db['host']) ?>">
+  <label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" name="demo_mode" value="1" checked> Demo site (one-tap role logins on the login page)</label>
+  <button>Connect</button>
+</form>
 <?php else: ?>
-<p>Create the first admin login. You can add your team later.</p>
+<p><b>Step 2 of 2</b> — create the first admin login.</p>
 <?php if (!empty($err)) echo '<div class="e">' . htmlspecialchars($err) . '</div>'; ?>
 <form method="post">
   <label>Company name</label><input type="text" name="company" placeholder="e.g. Secure Eye CCTV Solutions">
   <label>Your name</label><input type="text" name="name" required>
   <label>Email (login)</label><input type="email" name="email" required>
   <label>Password</label><input type="password" name="password" minlength="6" required>
-  <label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" name="demo" value="1"> Add demo data (sample customers, leads, jobs, invoices)</label>
+  <label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" name="demo" value="1" <?= DEMO_MODE ? 'checked' : '' ?>> Add demo data (sample customers, leads, jobs, invoices)</label>
   <button>Install</button>
 </form>
 <?php endif; ?>
